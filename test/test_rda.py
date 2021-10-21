@@ -59,6 +59,9 @@ class TestA6Commands(unittest.TestCase):
     def test_cps_command(self):
         self.assertEqual(a6.cps_command(bytes.fromhex('002b'), 0x8201ff9c), bytes.fromhex('ad0007ff040300000001f9'))
 
+class TestATCommands(unittest.TestCase):
+    def test_get_freqerr(self):
+        self.assertEqual(a6.parse_freq_err_resp("_OnCmd_GETFREQERR the compesation value[-860]"), -860)
 
 
 

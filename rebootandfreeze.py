@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
-"""  AT Commander for AUCTUS based radios
+""" Reboot and freeze
 
-Allow for communication with AUCTUS A6 radios to their serial
-interface through the debug interface.  Commands can either be "AT"
-commands or "CPS" commands.  Both styles will work.
+Reset the AUCTUS A6 processor and freeze execution.  This allows for
+uninterupted dumping of the normally problematic BCPU rom.
 
 """
 
 import serial
-import binascii
-import time
-import struct
-import sys
-import functools
-import operator
 import a6
 
 __author__ = "jhart99"
@@ -22,7 +15,7 @@ __license__ = "MIT"
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='Auctus A6 ATECPS commander')
+    parser = argparse.ArgumentParser(description='Auctus A6 reboot and freeze')
     parser.add_argument('-p', '--port', default='/dev/ttyUSB0',
                         type=str, help='serial port')
     parser.add_argument('-b','--baudrate', default=921600,
@@ -32,19 +25,10 @@ if __name__ == "__main__":
     parser.add_argument('-V', '--version', action='version',
                         version='%(prog)s 0.0.1',
                         help='display version information and exit')
-    parser.add_argument('command')
     args = parser.parse_args()
 
     sio = serial.Serial(args.port, args.baudrate, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE, xonxoff=True, rtscts=False, timeout = 0.001)
     sio.flush()
+    sio.write(a6.reboot_and_freeze())
 
-    if args.command[0:3] == 'AT+':
-        a6.send_ate_command(sio, args.command, args.verbosity)
-    else:
-        a6.send_cps_command(sio, bytes.fromhex(args.command), args.verbosity)
-    data = a6.atecps_resp_read(sio, args.verbosity)
-    data = data.split(b'\x00')
-    for line in data:
-        print(line.decode('utf-8'))
-    # sys.stdout.buffer.write(data)
     sio.close()

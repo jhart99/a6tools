@@ -22,7 +22,13 @@ __license__ = "MIT"
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='Auctus A6 ATECPS commander')
+    parser = argparse.ArgumentParser(description='Auctus A6 dumper')
+    parser.add_argument('--begin', type=lambda x: int(x,0),
+                        help='begin address default 0x82000000',
+                        default=0x82000000)
+    parser.add_argument('--end', type=lambda x: int(x,0),
+                        help='end address default 0x8200ff00',
+                        default=0x8200ff00)
     parser.add_argument('-p', '--port', default='/dev/ttyUSB0',
                         type=str, help='serial port')
     parser.add_argument('-b','--baudrate', default=921600,
@@ -32,19 +38,10 @@ if __name__ == "__main__":
     parser.add_argument('-V', '--version', action='version',
                         version='%(prog)s 0.0.1',
                         help='display version information and exit')
-    parser.add_argument('command')
     args = parser.parse_args()
 
     sio = serial.Serial(args.port, args.baudrate, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE, xonxoff=True, rtscts=False, timeout = 0.001)
     sio.flush()
-
-    if args.command[0:3] == 'AT+':
-        a6.send_ate_command(sio, args.command, args.verbosity)
-    else:
-        a6.send_cps_command(sio, bytes.fromhex(args.command), args.verbosity)
-    data = a6.atecps_resp_read(sio, args.verbosity)
-    data = data.split(b'\x00')
-    for line in data:
-        print(line.decode('utf-8'))
-    # sys.stdout.buffer.write(data)
+    data = a6.read_mem_range(sio, args.begin, args.end, args.verbosity)
+    sys.stdout.buffer.write(data)
     sio.close()

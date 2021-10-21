@@ -1,6 +1,7 @@
 import serial
 import time
 import sys
+import re
 from .eprint import eprint
 from .a6commands import h2p_command
 from .a6commands import ate_command
@@ -28,7 +29,6 @@ def send_ate_command(sio, msg, verbosity=0):
     executed
 
     """
-    sio.write(read_word(0x81c00270))
     atecps_addr = fetch_memory_address(sio, 0x81c00270, verbosity)
 
     write_flush_pause(sio, h2p_command(0), verbosity)
@@ -131,15 +131,67 @@ def atecps_resp_read(sio, verbosity = 0):
     atecps_resp_addr = int.from_bytes(atecps_resp_addr, 'little')
     length = fetch_memory_address(sio, atecps_resp_addr - 4, verbosity)
     length = int.from_bytes(length, 'little')
-    read_mem_range(sio, atecps_resp_addr, atecps_resp_addr + length, verbosity)
+    response = read_mem_range(sio, atecps_resp_addr, atecps_resp_addr + length, verbosity)
+    return response
 
 def read_mem_range(sio, begin, end, verbosity=0 ):
     """ Read a memory range
 
     """
     addr = begin
+    datalist = []
     while addr < end:
         data = fetch_memory_address(sio, addr, verbosity)
         if len(data) == 4:
-            sys.stdout.buffer.write(data)
+            datalist.append(data)
             addr = addr + 4
+    return b''.join(datalist)
+
+def read_mem_burst(sio, begin, end, verbosity=0):
+    burst = 0x40
+    curaddr = begin
+    offset = 0
+    while curaddr < end:
+        recvflags = [False] * burst
+        recvdata = [0] * burst
+        while sum(recvflags != burst):
+            i = 0
+            while i < burst:
+                if not recvflags[i]:
+                    sio.write(read_word(curaddr + 4 * i, i + offset))
+                i += 1
+                size = sio.in_waiting
+                while size  > 0:
+                    data += sio.read(size)
+                    # process frame
+                if sum(recvflags) == burst:
+                    break
+        if offset == 0:
+            offset = burst
+        else:
+            offset = 0
+
+def get_freq_err(sio, verbosity=0):
+    send_ate_command(sio, "AT+DMOCONNECT", verbosity)
+    send_ate_command(sio, "AT+GETFREQERR", verbosity)
+    resp = atecps_resp_read(sio)
+    resp = resp.split(b'\x00')
+    resp = [x.decode('utf-8') for x in resp]
+    return parse_freq_err_resp(resp[0])
+
+def parse_freq_err_resp(resp):
+    pattern = '\[(.+)\]'
+    freqerr = re.search(pattern, resp)
+    if freqerr:
+        return int(freqerr.group(1))
+    else:
+        return 0
+
+def set_freq_err(sio, freqerr, verbosity=0):
+    send_ate_command(sio, "AT+DMOCONNECT", verbosity)
+    send_ate_command(sio, "AT+DMOFREQERR={}".format(freqerr), verbosity)
+    resp = atecps_resp_read(sio)
+    resp = resp.split(b'\x00')
+    resp = [x.decode('utf-8') for x in resp]
+    for line in resp:
+        print(line)
