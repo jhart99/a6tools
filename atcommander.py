@@ -7,14 +7,8 @@ commands or "CPS" commands.  Both styles will work.
 
 """
 
-import serial
-import binascii
 import time
-import struct
-import sys
-import functools
-import operator
-import a6
+from a6 import send_ate_command, send_cps_command, atecps_resp_read, SerialIO
 
 __author__ = "jhart99"
 __license__ = "MIT"
@@ -35,16 +29,14 @@ if __name__ == "__main__":
     parser.add_argument('command')
     args = parser.parse_args()
 
-    sio = serial.Serial(args.port, args.baudrate, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE, xonxoff=True, rtscts=False, timeout = 0.001)
-    sio.flush()
+    uart = SerialIO(args.port, args.baudrate, args.verbosity)
 
     if args.command[0:3] == 'AT+':
-        a6.send_ate_command(sio, args.command, args.verbosity)
+        send_ate_command(args.command)
     else:
-        a6.send_cps_command(sio, bytes.fromhex(args.command), args.verbosity)
-    data = a6.atecps_resp_read(sio, args.verbosity)
+        send_cps_command(bytes.fromhex(args.command))
+    time.sleep(0.1)
+    data = atecps_resp_read()
     data = data.split(b'\x00')
     for line in data:
         print(line.decode('utf-8'))
-    # sys.stdout.buffer.write(data)
-    sio.close()

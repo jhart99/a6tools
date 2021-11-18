@@ -4,6 +4,9 @@ def escaper(msg):
     this function escapes special characters in the message.  These
     are 0x5c, 0x11 and 0x13 which are '\' and XON and XOFF characters.
 
+    @param msg: the message to escape
+    @return: the escaped message
+
     """
 
     out = bytes(sum([[0x5c, 0xFF ^ x ] if x in [0x11, 0x13, 0x5c] else [x] for x in msg], []))
@@ -13,6 +16,9 @@ def unescaper(msg):
     """ unescape message
 
     this function undoes any escape sequences in a received message
+
+    @param msg: the message to unescape
+    @return: the unescaped message
     """
 
     out = []

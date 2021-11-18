@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-""" Reboot and freeze
+"""  AT Commander for AUCTUS based radios
 
-Reset the AUCTUS A6 processor and freeze execution.  This allows for
-uninterupted dumping of the normally problematic BCPU rom.
+Allow for communication with AUCTUS A6 radios to their serial
+interface through the debug interface.  Commands can either be "AT"
+commands or "CPS" commands.  Both styles will work.
 
 """
 
-from a6 import SerialIO, reboot_and_freeze
+from a6 import get_chan_info, SerialIO
 
 __author__ = "jhart99"
 __license__ = "MIT"
@@ -14,7 +15,7 @@ __license__ = "MIT"
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='Auctus A6 reboot and freeze')
+    parser = argparse.ArgumentParser(description='Auctus A6 ATECPS commander')
     parser.add_argument('-p', '--port', default='/dev/ttyUSB0',
                         type=str, help='serial port')
     parser.add_argument('-b','--baudrate', default=921600,
@@ -24,7 +25,9 @@ if __name__ == "__main__":
     parser.add_argument('-V', '--version', action='version',
                         version='%(prog)s 0.0.1',
                         help='display version information and exit')
+    parser.add_argument('channel', type=int, help='channel number')
     args = parser.parse_args()
 
+
     uart = SerialIO(args.port, args.baudrate, args.verbosity)
-    uart.write(reboot_and_freeze())
+    get_chan_info(args.channel)

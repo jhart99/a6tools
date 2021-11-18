@@ -19,6 +19,8 @@ from .serialio import send_ate_command
 from .serialio import send_cps_command
 from .serialio import atecps_resp_read
 from .serialio import read_mem_range
+from .serialio import get_chan_info
 from .serialio import get_freq_err
 from .serialio import parse_freq_err_resp
 from .serialio import set_freq_err
+from .serialio import SerialIO

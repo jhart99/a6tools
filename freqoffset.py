@@ -12,14 +12,7 @@ outside what my poor MMDVM board could tolerate.
 
 """
 
-import serial
-import binascii
-import time
-import struct
-import sys
-import functools
-import operator
-import a6
+from a6 import SerialIO, get_freq_err, set_freq_err
 
 __author__ = "jhart99"
 __license__ = "MIT"
@@ -38,20 +31,16 @@ if __name__ == "__main__":
                         version='%(prog)s 0.0.1',
                         help='display version information and exit')
     parser.add_argument('current', type=int,
-                        help='the frequency the radio is currently transmitting in Hz')
+                        help='the measured frequency the radio is currently transmitting in Hz')
     parser.add_argument('target', type=int,
-                        help='the desired frequency in Hz')
+                        help='the programmed frequency in the radio in Hz')
     args = parser.parse_args()
 
-    sio = serial.Serial(args.port, args.baudrate, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE, xonxoff=True, rtscts=False, timeout = 0.001)
-    sio.flush()
+    uart = SerialIO(args.port, args.baudrate, args.verbosity)
 
     delta = args.target - args.current
-    curerr = a6.get_freq_err(sio)
+    curerr = get_freq_err()
     target = curerr + delta
     if abs(target) > 2500:
         raise ValueError("Desired offset exceeds maximum of 2500 Hz")
-    a6.set_freq_err(sio, int((target + 2500)/10))
-
-    # sys.stdout.buffer.write(data)
-    sio.close()
+    set_freq_err(int((target + 2500)/10))

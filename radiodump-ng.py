@@ -8,13 +8,9 @@ commands or "CPS" commands.  Both styles will work.
 """
 
 import serial
-import binascii
-import time
-import struct
 import sys
-import functools
-import operator
-import a6
+from a6 import read_mem_range, SerialIO
+
 
 __author__ = "jhart99"
 __license__ = "MIT"
@@ -40,8 +36,6 @@ if __name__ == "__main__":
                         help='display version information and exit')
     args = parser.parse_args()
 
-    sio = serial.Serial(args.port, args.baudrate, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE, xonxoff=True, rtscts=False, timeout = 0.001)
-    sio.flush()
-    data = a6.read_mem_range(sio, args.begin, args.end, args.verbosity)
+    uart = SerialIO(args.port, args.baudrate, args.verbosity)
+    data = read_mem_range(args.begin, args.end)
     sys.stdout.buffer.write(data)
-    sio.close()
