@@ -1,14 +1,18 @@
+from os import wait
 import serial
 import time
 import sys
 import re
+from collections import deque
+
+from a6.escaper import unescaper
 from .eprint import eprint
 from .a6commands import CPSFrame, h2p_command
 from .a6commands import ChanInfoFrame, h2p_command
 from .a6commands import ate_command
 from .a6commands import cps_command
 from .a6commands import read_uart_to_host
-from .rdadebug import RdaFrame
+from .rdadebug import RdaFrame, rda_frames_from_bytes
 from .rdadebug import read_word
 
 class Singleton(object):
@@ -149,7 +153,7 @@ def send_ate_command(msg):
     """
     uart = SerialIO()
     write_flush_pause(h2p_command(0))
-    write_flush_pause(ate_command(msg, uart.ate_cps_addr))
+    write_flush_pause(ate_command(uart.ate_cps_addr, msg))
     write_flush_pause(h2p_command(0xa5))
 
 def send_cps_command(msg):
@@ -166,10 +170,10 @@ def send_cps_command(msg):
 
     uart = SerialIO()
     write_flush_pause(h2p_command(0))
-    write_flush_pause(cps_command(msg, uart.ate_cps_addr))
+    write_flush_pause(cps_command(uart.ate_cps_addr, msg))
     write_flush_pause(h2p_command(0xa5))
 
-def wait_on_read(retries=256, delay=0):
+def wait_on_read(retries=256, delay=0.001):
     """ Wait until a read happens
 
     This function waits until something is received from the serial or
@@ -186,11 +190,11 @@ def wait_on_read(retries=256, delay=0):
         size = uart.in_waiting
         countdown -= 1
         if delay: time.sleep(delay)
-    if countdown == 0:
-        # nothing received
-        return b''
     if size > 0:
         data = uart.read(size)
+    else:
+        # nothing received
+        data = b''
     return data
 
 def send_uart_setup():
@@ -206,6 +210,7 @@ def send_uart_setup():
         uart.flush()
         time.sleep(0.001)
         data = wait_on_read()
+        data = unescaper(data)
         response = RdaFrame(data)
         if response.seq == 1 and response.content == b'\x80':
             knock_worked = True
@@ -221,24 +226,65 @@ def fetch_memory_address(addr, seq=1):
     uart = SerialIO()
     read_ok = False
     retval = b''
-    retries = 25
     while not read_ok:
-        frame = read_word(addr, seq)
-        uart.write(frame)
-        uart.flush()
-        size = uart.in_waiting
-        i = retries
-        while size == 0 and i > 0:
-            time.sleep(0.001)
-            size = uart.in_waiting
-            i -= 1
-        if retries == 0:
-            continue
-        data = uart.read(size)
-        inbound_frame = RdaFrame(data)
-        read_ok = inbound_frame.seq == seq and not inbound_frame.check_fail
-        retval = inbound_frame.content
+        out_frame = read_word(addr, seq)
+        uart.write(out_frame)
+        data = wait_on_read()
+        data = unescaper(data)
+        frames = rda_frames_from_bytes(data)
+        for frame in frames:
+            if frame is None:
+                break
+            if frame.seq == seq and not frame.check_fail:
+                read_ok = True
+                retval = frame.content
+                break
     return retval
+
+def fetch_memory_block(begin, end, offset = 0):
+    """ Attempt to read a block of memory
+
+    Note: The A6 takes about 15ms roundtrip from sending a request to receiving
+    the reply.  We don't need to wait, there seems to be plenty of buffer for
+    the commands. However, the reads have a number attached to them which can
+    only go from 0 to 255 and 0 and 255 can't be used.  Generally everything
+    works, but we need to be sure that we don't miss or corrupt things.
+    
+    @param begin: start address
+    @param end: end address
+    @return: list of bytes
+
+    """
+    uart = SerialIO()
+    addr = begin
+    data = b''
+    out = [None] * ((end - begin)//4 + 1)
+
+    seq = 1
+    while addr < end:
+        frame = read_word(addr, seq + offset)
+        uart.write(frame)
+        addr += 4
+        seq += 1
+        if uart.in_waiting > 0:
+            data += uart.read(uart.in_waiting)
+
+    time.sleep(0.025)
+    while uart.in_waiting > 0:
+        data += uart.read(uart.in_waiting)
+    
+    frames = rda_frames_from_bytes(data)
+    for frame in frames:
+        seq = frame.seq - 1 - offset
+        if seq < 0:
+            eprint('event: {:x}'.format(int.from_bytes(frame.content, 'little')))
+            continue
+        out[seq] = frame.content
+    for idx, data in enumerate(out):
+        if data is None:
+            out[idx] = fetch_memory_address(begin + idx*4)
+
+    return b''.join(out)
 
 def atecps_resp_read():
     """ Read the response from an ATECPS command
@@ -274,44 +320,59 @@ def read_mem_range(begin, end):
     """
     addr = begin
     datalist = []
+    end = end + (end%4)
+    offset = 0
     while addr < end:
-        data = fetch_memory_address(addr)
-        if len(data) == 4:
-            datalist.append(data)
-            addr = addr + 4
+        if end - addr > 0x100:
+            block = 0x100
+        else:
+            block = end - addr
+
+        data = fetch_memory_block(addr, addr + block, offset)
+        datalist.append(data)
+        addr += block
+        offset = (offset + 0x40) % 0x80
     return b''.join(datalist)
 
-def read_mem_burst(sio, begin, end, offset=0, verbosity=0):
-    """ Read a limited memory range using a burst read
+def read_mem_range2(begin, end):
+    """ Read a memory range
 
-    @param sio: serial object
     @param begin: start address
     @param end: end address
-    @param offset: offset of the sequence number
-    @param verbosity: verbosity level
     @return: the data in bytes
-    """
-    
-    if end - begin > 0x100:
-        raise ValueError('burst read only supports ranges of less than 256 bytes')
-    # the burst is in words of 4 bytes
-    burst = (end - begin) / 4
-    # preallocate the lists
-    recvflags = [False] * burst
-    recvdata = [0] * burst
-    i = 0
-    data = b''
-    while sum(recvflags) != burst:
-        while i < burst:
-            if not recvflags[i]:
-                sio.write(read_word(begin + 4 * i, i + offset + 1))
-            i += 1
-            size = sio.in_waiting
-            if size  > 0:
-                data += sio.read(size)
-        i = 0
 
-    return b''.join(recvdata)
+    """
+    queued_reads = {}
+    store = {}
+    addr = begin
+    seq = 1
+    uart =  SerialIO()
+    data = b''
+    while addr < end:
+        out_frame = read_word(addr, seq)
+        queued_reads[seq] = addr
+        uart.write(out_frame)
+        while seq in queued_reads:
+            seq += 1
+            if seq == 255:
+                seq = 1
+        addr += 4
+        if uart.in_waiting > 0:
+            data += uart.read(uart.in_waiting)
+            data = unescaper(data)
+            frames = rda_frames_from_bytes(data)
+            for frame in frames:
+                if frame is None:
+                    break
+                if not frame.check_fail and frame.seq in queued_reads:
+                        store[queued_reads[frame.seq]] = frame.content
+                        print('{} : {}'.format(queued_reads[frame.seq], frame.content))
+                        del queued_reads[frame.seq]
+
+
+
+
+    return b''
 
 def get_chan_info(channel = 0):
     """ Get the channel info

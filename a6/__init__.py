@@ -6,6 +6,8 @@ from .rdadebug import read_word
 from .rdadebug import write_register_int8
 from .rdadebug import read_register_int8
 from .rdadebug import write_block
+from .rdadebug import rda_frame_parser
+from .rdadebug import rda_frames_from_bytes
 from .a6commands import h2p_command
 from .a6commands import set_uart_to_host
 from .a6commands import set_uart_to_normal
@@ -15,10 +17,12 @@ from .a6commands import cps_command
 from .a6commands import reboot_and_freeze
 from .serialio import send_uart_setup
 from .serialio import fetch_memory_address
+from .serialio import fetch_memory_block
 from .serialio import send_ate_command
 from .serialio import send_cps_command
 from .serialio import atecps_resp_read
 from .serialio import read_mem_range
+from .serialio import read_mem_range2
 from .serialio import get_chan_info
 from .serialio import get_freq_err
 from .serialio import parse_freq_err_resp

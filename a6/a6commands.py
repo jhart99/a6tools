@@ -70,7 +70,7 @@ def read_uart_to_host():
     """
     return read_register_int8(3)
 
-def ate_command(cmd, p_atecps_write):
+def ate_command(ate_cps_addr, cmd):
     """ make a frame containing an ATE command
 
     @param cmd: the command to send
@@ -80,9 +80,9 @@ def ate_command(cmd, p_atecps_write):
     """
     cmd = bytearray(cmd, 'utf-8') + b'\r'
     cmd += bytes(4 - len(cmd) % 4)
-    return write_block(p_atecps_write, cmd)
+    return write_block(ate_cps_addr, cmd)
 
-def cps_command(cmd, p_atecps_write):
+def cps_command(ate_cps_addr, cmd):
     """ make a frame containing an CPS command
 
     @param cmd: the command to send
@@ -96,7 +96,7 @@ def cps_command(cmd, p_atecps_write):
     end = bytes([0xbb])
     msg = begin + length + cmd + check + end
     padding = 4 - (len(msg) % 4)
-    return write_block(p_atecps_write, msg + bytes([0x00]) * padding)
+    return write_block(ate_cps_addr, msg + bytes([0x00]) * padding)
 
 class CPSFrame:
     """ Received CPS class

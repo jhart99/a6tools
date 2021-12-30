@@ -103,7 +103,6 @@ class RdaFrame:
     length = 0
     content = bytes([])
     def __init__(self, msg):
-        msg = unescaper(msg)
         if len(msg) <= 4:
             if(msg == b'\x11\x13'):
                 self.ack = True
@@ -118,4 +117,23 @@ class RdaFrame:
         self.length = msg[2]
         self.content = msg[5:-1]
     def __repr__(self):
-        return 'packet length {} seq {} content {} ack {} check {}'.format(self.length, self.seq, self.content, self.ack, self.check_fail)
+        return 'packet length {} seq {} content {} ack {} check_fail {}'.format(self.length, self.seq, self.content, self.ack, self.check_fail)
+
+def rda_frame_parser(data):
+    i = 0
+    while data[i] != 0xad:
+        i += 1
+        if i >= len(data):
+            return (None, b'')
+    if len(data) < 4:
+        return (None, data)
+    frame_len = data[2]
+    return (RdaFrame(data[i:4+frame_len+i]), data[frame_len+i+4:])
+
+def rda_frames_from_bytes(data):
+    out = []
+    data = unescaper(data)
+    while (len(data) > 0):
+        frame, data = rda_frame_parser(data)
+        out.append(frame)
+    return out

@@ -44,7 +44,7 @@ DMOSETPOWER | Sets the power level for the current channel AT+DMOSETPOWER=<level
 DMOSETPWRSAVELV | Sets the FM power save level for the current channel if no audio, the radio will stop transmitting AT+DMOSETPWRSAVELV=<level>
 DMOSETWLKTLKID | Set the DMR Radio ID
 DMOSETGRPADDR | Set the DMR group address
-DMOSETFREQBANDNUM | Set the number of frequency bands AT+DMOSETFREQBANDNUM=<number> where number is less than 16
+DMOSETFREQBANDNUM | Set the number of frequency bands AT+DMOSETFREQBANDNUM=<number> where the number is less than 16
 DMOGETFREQBANDNUM | Get the current number of frequency bands
 DMOSETFREQBANDVAL | Set the values of the frequency bands 
 DMOGETFREQBANDVAL | Get the values of the frequency bands
@@ -77,16 +77,16 @@ GETPOWERAMPGAIN | Get the power amplifier gain values AT+GETPOWERAMPGAIN=<band> 
 SETPOWERAMPGAIN | Sets the power amplifier gain
 GETPOWERAPCGAIN | Get the automatic power control gain values AT+GETPOWERAPCGAIN=<band> returns <band>,<digLow>,<digMed>,<digHigh>,<anaLow>,<anaMed>,<anaHigh>
 SETPOWERAPCGAIN | Sets the automatic power control gain
-SETPOWERAPCSW | Sets the automatic power control switch ?
+SETPOWERAPCSW | Sets the automatic power control switch?
 GETEFLTRXADJ | Returns the RX filter adjustment for a band AT+GETEFLTRXADJ=<band> where the value is <band>,<dac>,<gain>
 SETEFLTRXADJ | Sets the RX filter adjustment for a band AT+SETEFLTRXADJ=<band>,<dac>,<gain>
 DMOGETVAFC | Returns the current Automatic Frequency Correction value
 DMOSETVAFC | Sets the Automatic Frequency Correction value
-DMOPTT | Sets the PTT state for the current channel AT+DMOPTT=<state> where state is 0 for off and 1 for on
+DMOPTT | Sets the PTT state for the current channel AT+DMOPTT=<state> where the state is 0 for off and 1 for on
 GETFREQERR | Get the TCXO frequency error in 10s of Hz
 DMOFREQERR | Set the TCXO frequency error in 10s of Hz
 GETBANDBYFREQ | Returns the band number for the given frequency AT+GETBANDBYFREQ=<freq>
-DMOGETFREQBANDVAL | Returns the cut offs for the different frequency bands
+DMOGETFREQBANDVAL | Returns the cut-offs for the different frequency bands
 DMOGETFREQBANDNUM | Returns the number of frequency bands in use/defined AT+DMOGETFREQBANDNUM
 DMOSETFREQBANDNUM | Can be used to change the number of defined frequency bands AT+DMOSETFREQBANDNUM=2
 DMRSIGNATURE | Unknown command.  The signature looks something like this: AT+DMRSIGNATURE/aa,aa,aa,... with a total of 30 bytes worth of numbers Returns something that says AUTHSETKEYS
@@ -103,7 +103,7 @@ GETAPC_FINEVALUE |
 SETAPC_FINEVALUE |
 DMR_ADJTXSYMDEV |
 DMR_GETTXSYMDEV |
-SETSTANDARD | Sets the testing standard for the radio AT+SETSTANDARD=<standard> where standard is 0-4.  Completely resets the radio's program!
+SETSTANDARD | Sets the testing standard for the radio AT+SETSTANDARD=<standard> where the standard is 0-4.  Completely resets the radio's program!
 SETSQLEVEL |
 SETSQADJUST |
 SETSQMODE |

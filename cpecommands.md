@@ -37,12 +37,12 @@ Command | Description
 0101 | Unknown
 0102 | Unknown
 0104 | Unknown
-0a00 | @CpsByHostPort_ConcatenateHdr CPS_Hdr[StartAddr:0x82004810 len:772] 0x88105948
-0a01 | Unknown
-0a02 | Unknown
-0a03 | Unknown
-0a04 | Unknown but same as 0a07
-0a05 | Unknown
-0a06 | Unknown
+0a00 | Populates the CPS area in RAM and also pauses transmissions for 5 seconds.  Returns @CpsByHostPort_ConcatenateHdr CPS_Hdr[StartAddr:0x82004810 len:772] 0x88105948
+0a01 | ? Clear CPS area ?
+0a02 | ? Writes CPS from RAM to flash and reboots ?
+0a03 | Unknown called during CPS read operation
+0a04 | Unknown but same as 0a07 called during CPS read finalizer
+0a05 | Stops transmissions for 5 seconds.  Might pause BCPU?
+0a06 | ? Cancels powersaving mode ? Called during the initialization sequence
 0a07 | Unknown but same as 0a04
-0a08 | PROT_SendDataFrame Seems to echo the sent packet back
+0a08 | PROT_SendDataFrame Seems to echo the sent packet back. Called during the initialization sequence.  Might be a check that the CPS in the radio is running.
